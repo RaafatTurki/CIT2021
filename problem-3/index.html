@@ -1,0 +1,138 @@
+<html>
+    <body>
+        <h2>Fridge Items</h2>
+        <table>
+            <thead>
+                <td> <b>Item</b> </td>
+                <td> <b>Count</b> </td>
+                <td> <b>Remove</b> </td>
+            </thead>
+            <tbody id="items_table"></tbody>
+        </table>
+        <br/>
+        <input id="txt-item" type="text" placeholder="<name> <count>" autofocus>
+        <button onclick="on_apply_btn_click(event)">Apply</button>
+        <p id="tooltip-msg"></p>
+        <div id="extras">
+            <p>some extra functionalities to try:</p>
+            <ul>
+                <li>the input box handles enter key as an apply</li>
+                <li>negative count values are treated as taking items from the fridge</li>
+                <li>items reaching 0 count get automatically removed</li>
+                <li>a warning tooltip appears on illegal applies</li>
+            </ul>
+        </div>
+    </body>
+
+    <script>
+        let txt_item = document.querySelector("#txt-item")
+        let tltp_msg = document.querySelector("#tooltip-msg")
+
+        class Item {
+            constructor(name, count) {
+                this.name = name
+                this.count = count
+                this.id = `${name}-${gen_id(5)}`
+            }
+
+            add() {
+                let item_element = `
+                    <tr id="${this.id}">
+                        <td>${this.name}</td>
+                        <td id="${this.id}-count">${this.count}</td>
+                        <td><input class="red" type="button" value="X" onclick="remove('${this.id}')"></input></td>
+                    </tr>
+                `
+                document.querySelector("#items_table").innerHTML += item_element
+                tooltip(`added  : ${this.name} ${this.count}`, "green")
+            }
+
+            edit() {
+                document.querySelector(`#${this.id}-count`).innerHTML = this.count
+                tooltip(`edited : ${this.name} ${this.count}`, "green")
+            }
+
+            remove() {
+                document.querySelector(`#${this.id}`).style.display = "none"
+                tooltip(`removed: ${this.name}`, "orange")
+            }
+        }
+
+        let fridge = []
+        apply(new Item("leek", 2))
+        apply(new Item("spinach", 2))
+
+        // generates a random ID with a specific length
+        function gen_id(length) {
+            let id = ''
+            let char_set = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+            for ( let i = 0; i < length; i++ ) id += char_set.charAt(Math.floor(Math.random() * char_set.length))
+            return id
+        }
+
+        function tooltip(str, color="red") {
+            tltp_msg.innerHTML = str
+            tltp_msg.style.color = color
+        }
+
+        // parses a string into an Item instance if possible
+        function parse_item(str) {
+            let data = str.split(" ")
+            if (data.length != 2) { tooltip("item must include name and count"); return false }
+            let name = data[0]
+            if (name.length == 0) { tooltip("item name can't be empty"); return false }
+            let count = parseInt(data[1])
+            if (isNaN(count)) { tooltip("item count must be a number"); return false }
+            if (count == 0) { tooltip("item count can't be zero"); return false }
+            return new Item(name, count)
+        }
+
+        // on add button click handler
+        function on_apply_btn_click() {
+            let item = parse_item(txt_item.value)
+            apply(item)
+            txt_item.value = ""
+        }
+
+        // submits entry on enter
+        txt_item.addEventListener("keyup", e => {
+            if (event.keyCode === 13) {
+                event.preventDefault()
+                on_apply_btn_click()
+            }
+        })
+
+        // applies various action on item instance
+        function apply(item) {
+            if (item != false) {
+                let item_old = fridge.find(_item => _item.name == item.name )
+                if (item_old) {
+                    if (item.count + item_old.count >= 0) { item_old.count += item.count } else { tooltip("can't take more than what's available"); return }
+                    item_old.count == 0 ? remove(item_old.id) : item_old.edit()
+                } else {
+                    if (item.count <= 0) { tooltip("can't add a new item with a negative count"); return }
+                    fridge.push(item)
+                    item.add()
+                }
+            }
+        }
+
+        // removes item instance
+        function remove(id) {
+            let item_index = fridge.findIndex(_item => _item.id == id );
+            let item = fridge[item_index]
+            item.remove()
+            fridge.splice(item_index, 1)
+        }
+    </script>
+
+    <style>
+        body { font-family: monospace; }
+        td { padding-right: 50px; }
+        .red { color: red; }
+        #extras {
+            color: grey;
+            margin-top: 50px;
+        }
+    </style>
+</html>
